@@ -371,65 +371,86 @@ namespace WmosAutomatizacion.Classes
 
 
                 logger.Log("Fin Flujo WMOS");
-
                 logger.Log("Inicio Flujo Kisoft");
 
 
 
-                // INICIO FLUJO KISOFT
+                List<WAVE_DTO> listadoWavesNoProcesadas = new List<WAVE_DTO>();
+                listadoWavesNoProcesadas = ObtenerWavesNoProcesadas();
 
 
-                //var startInfo = new ProcessStartInfo
-                //{
-                //    FileName = AppPath,
-                //    Arguments = "--start-maximized"
-                //};
-
-                //app = FlaUIApplication.Launch(startInfo);
-                //automation = new UIA3Automation();
-                //var ventana = app.GetMainWindow(automation);
-
-                //await Login.FlujoLogin(app, automation);
-                //logger.Log("Login Kisoft OK");
-
-                //Kisoft.AceptarAdvertenciaSeguro(app, automation);  // Funciona rapido, no modificar, me costo ene jaja
-                //logger.Log("Advertencia aceptada");
-
-                //// MODULO OLEADAS (Por coordenadas):
-                //Console.WriteLine("Inicio Modulo Oleadas de pedidos");
-                ////await Kisoft.ClickPorCoordenadasSeguro(app, automation, 236, 264);
-
-                ////await Kisoft.ClickPorCoordenadasSeguro(app, automation, 236, 264); // Para resolucion en noteboook local
-                //await Kisoft.ClickPorCoordenadasSeguro(app, automation, 347, 303); // Para resolución 1080p en el server
-                //logger.Log("Módulo Waves abierto");
-
-                //await Kisoft.CambiarValorTextboxPorValorActualAsync(app, automation, "70", "20");
-                //logger.Log("Cambiar valor al filtro de 70 a 20");
+                foreach (var waveItem in listadoWavesNoProcesadas)
+                {
+                    string queryBase = @"SELECT EM.EK_WAVE_NBR WAVE_KISOFT, EM.EVENT_MESSAGE_ID WMOS_MSG, EM.CL_MESSAGE_ID KNAPP_MSG, EM.EVENT_ID, CMS.STATUS_NAME STATUS, EM.create_date_time EV_DTTM, TD.SHIP_WAVE_NBR WMOS_WAVE, SWP.WAVE_DESC, (WTASK.SUM_COMPLETED / WTASK.SUM_TASKS) * 100 COMPLETED, WTASK.SUM_TASKS INT1, WTASK.SUM_COMPLETED INT1_CONSUMED, EM.EK_WAVE_NBR, TASK_SUMMARY.SUM_TOTAL TAREAS_TOTAL, TASK_SUMMARY.SUM_TOTAL_MZ ""TAREAS_MZN (TOTAL)"", TASK_SUMMARY.SUM_RELEASED_MZ ""TAREAS_MZN (RELEASED)"", TASK_SUMMARY.SUM_LOCK_MZ ""TAREAS_MZN (LOCKED)"", TASK_SUMMARY.SUM_TOTAL_GT ""TAREAS_GTP (TOTAL)"", TASK_SUMMARY.SUM_RELEASED_GT ""TAREAS_GTP (RELEASED)"", TASK_SUMMARY.SUM_LOCK_GT ""TAREAS_GTP (LOCKED)"" FROM event_message EM INNER JOIN (SELECT DISTINCT SWP.SHIP_WAVE_NBR, TD.TASK_GENRTN_REF_NBR FROM TASK_DTL TD INNER JOIN LPN L ON L.TC_LPN_ID = TD.CARTON_NBR INNER JOIN SHIP_WAVE_PARM SWP ON SWP.SHIP_WAVE_NBR = L.WAVE_NBR WHERE TD.TASK_GENRTN_REF_CODE = '44') TD ON TD.TASK_GENRTN_REF_NBR = EM.EK_WAVE_NBR INNER JOIN SHIP_WAVE_PARM SWP ON SWP.SHIP_WAVE_NBR = TD.SHIP_WAVE_NBR LEFT JOIN (SELECT TD_TODAS.SHIP_WAVE_NBR, TD_TODAS.SUM_TASKS, TD_90.SUM_COMPLETED, TD_0.SUM_RELEASED, TD_40.SUM_INPROGRESS FROM (SELECT WAVES.SHIP_WAVE_NBR, COUNT(TD.TASK_ID) SUM_TASKS FROM TASK_DTL TD INNER JOIN (SELECT * FROM SHIP_WAVE_PARM SWP WHERE SWP.WAVE_DESC LIKE 'Chase Wave' OR SWP.WAVE_DESC LIKE 'Customer Order Multi%') WAVES ON TD.TASK_GENRTN_REF_NBR = WAVES.SHIP_WAVE_NBR WHERE TD.INVN_NEED_TYPE = '1' AND TD.STAT_CODE NOT IN ('99') GROUP BY WAVES.SHIP_WAVE_NBR) TD_TODAS LEFT JOIN (SELECT WAVES.SHIP_WAVE_NBR, COUNT(TD.TASK_ID) SUM_RELEASED FROM TASK_DTL TD INNER JOIN (SELECT * FROM SHIP_WAVE_PARM SWP WHERE SWP.WAVE_DESC LIKE 'Chase Wave' OR SWP.WAVE_DESC LIKE 'Customer Order Multi%') WAVES ON TD.TASK_GENRTN_REF_NBR = WAVES.SHIP_WAVE_NBR WHERE TD.INVN_NEED_TYPE = '1' AND TD.STAT_CODE IN ('0') GROUP BY WAVES.SHIP_WAVE_NBR) TD_0 ON TD_TODAS.SHIP_WAVE_NBR = TD_0.SHIP_WAVE_NBR LEFT JOIN (SELECT WAVES.SHIP_WAVE_NBR, COUNT(TD.TASK_ID) SUM_COMPLETED FROM TASK_DTL TD INNER JOIN (SELECT * FROM SHIP_WAVE_PARM SWP WHERE SWP.WAVE_DESC LIKE 'Chase Wave' OR SWP.WAVE_DESC LIKE 'Customer Order Multi%') WAVES ON TD.TASK_GENRTN_REF_NBR = WAVES.SHIP_WAVE_NBR WHERE TD.INVN_NEED_TYPE = '1' AND TD.STAT_CODE IN ('90') GROUP BY WAVES.SHIP_WAVE_NBR) TD_90 ON TD_TODAS.SHIP_WAVE_NBR = TD_90.SHIP_WAVE_NBR LEFT JOIN (SELECT WAVES.SHIP_WAVE_NBR, COUNT(TD.TASK_ID) SUM_INPROGRESS FROM TASK_DTL TD INNER JOIN (SELECT * FROM SHIP_WAVE_PARM SWP WHERE SWP.WAVE_DESC LIKE 'Chase Wave' OR SWP.WAVE_DESC LIKE 'Customer Order Multi%') WAVES ON TD.TASK_GENRTN_REF_NBR = WAVES.SHIP_WAVE_NBR WHERE TD.INVN_NEED_TYPE = '1' AND TD.STAT_CODE IN ('40') GROUP BY WAVES.SHIP_WAVE_NBR) TD_40 ON TD_TODAS.SHIP_WAVE_NBR = TD_40.SHIP_WAVE_NBR) WTASK ON SWP.SHIP_WAVE_NBR = WTASK.SHIP_WAVE_NBR LEFT JOIN (SELECT TOTAL.TASK_GENRTN_REF_NBR PackWave, TOTAL.SUM_TOTAL, TOTALMZ.SUM_TOTAL_MZ, RELEASEDMZ.SUM_RELEASED_MZ, LOCKMZ.SUM_LOCK_MZ, TOTALGT.SUM_TOTAL_GT, RELEASEDGT.SUM_RELEASED_GT, LOCKGT.SUM_LOCK_GT FROM ((SELECT TT.TASK_GENRTN_REF_NBR, COUNT(TT.TASK_ID) SUM_TOTAL FROM TASK_DTL TT INNER JOIN LOCN_HDR LH ON LH.LOCN_ID = TT.PULL_LOCN_ID AND TT.TASK_GENRTN_REF_CODE = '44' GROUP BY TT.TASK_GENRTN_REF_NBR) TOTAL LEFT JOIN (SELECT TT.TASK_GENRTN_REF_NBR, COUNT(TT.TASK_ID) SUM_TOTAL_MZ FROM TASK_DTL TT INNER JOIN LOCN_HDR LH ON LH.LOCN_ID = TT.PULL_LOCN_ID AND TT.TASK_GENRTN_REF_CODE = '44' AND LH.AREA = 'MZ' GROUP BY TT.TASK_GENRTN_REF_NBR) TOTALMZ ON TOTAL.TASK_GENRTN_REF_NBR = TOTALMZ.TASK_GENRTN_REF_NBR LEFT JOIN (SELECT TT.TASK_GENRTN_REF_NBR, COUNT(TT.TASK_ID) SUM_RELEASED_MZ FROM TASK_DTL TT INNER JOIN LOCN_HDR LH ON LH.LOCN_ID = TT.PULL_LOCN_ID INNER JOIN TASK_HDR TH ON TH.TASK_ID = TT.TASK_ID WHERE TH.STAT_CODE IN ('10') AND TT.TASK_GENRTN_REF_CODE = '44' AND LH.AREA = 'MZ' GROUP BY TT.TASK_GENRTN_REF_NBR) RELEASEDMZ ON TOTAL.TASK_GENRTN_REF_NBR = RELEASEDMZ.TASK_GENRTN_REF_NBR LEFT JOIN (SELECT TT.TASK_GENRTN_REF_NBR, COUNT(TT.TASK_ID) SUM_LOCK_MZ FROM TASK_DTL TT INNER JOIN LOCN_HDR LH ON LH.LOCN_ID = TT.PULL_LOCN_ID INNER JOIN TASK_HDR TH ON TH.TASK_ID = TT.TASK_ID WHERE TH.STAT_CODE IN ('5') AND TT.TASK_GENRTN_REF_CODE = '44' AND LH.AREA = 'MZ' GROUP BY TT.TASK_GENRTN_REF_NBR) LOCKMZ ON TOTAL.TASK_GENRTN_REF_NBR = LOCKMZ.TASK_GENRTN_REF_NBR LEFT JOIN (SELECT TT.TASK_GENRTN_REF_NBR, COUNT(TT.TASK_ID) SUM_TOTAL_GT FROM TASK_DTL TT INNER JOIN LOCN_HDR LH ON LH.LOCN_ID = TT.PULL_LOCN_ID AND TT.TASK_GENRTN_REF_CODE = '44' AND LH.AREA = 'GT' GROUP BY TT.TASK_GENRTN_REF_NBR) TOTALGT ON TOTAL.TASK_GENRTN_REF_NBR = TOTALGT.TASK_GENRTN_REF_NBR LEFT JOIN (SELECT TT.TASK_GENRTN_REF_NBR, COUNT(TT.TASK_ID) SUM_RELEASED_GT FROM TASK_DTL TT INNER JOIN LOCN_HDR LH ON LH.LOCN_ID = TT.PULL_LOCN_ID INNER JOIN TASK_HDR TH ON TH.TASK_ID = TT.TASK_ID WHERE TH.STAT_CODE IN ('10') AND TT.TASK_GENRTN_REF_CODE = '44' AND LH.AREA = 'GT' GROUP BY TT.TASK_GENRTN_REF_NBR) RELEASEDGT ON TOTAL.TASK_GENRTN_REF_NBR = RELEASEDGT.TASK_GENRTN_REF_NBR LEFT JOIN (SELECT TT.TASK_GENRTN_REF_NBR, COUNT(TT.TASK_ID) SUM_LOCK_GT FROM TASK_DTL TT INNER JOIN LOCN_HDR LH ON LH.LOCN_ID = TT.PULL_LOCN_ID INNER JOIN TASK_HDR TH ON TH.TASK_ID = TT.TASK_ID WHERE TH.STAT_CODE = '5' AND TT.TASK_GENRTN_REF_CODE = '44' AND LH.AREA = 'GT' GROUP BY TT.TASK_GENRTN_REF_NBR) LOCKGT ON TOTAL.TASK_GENRTN_REF_NBR = LOCKGT.TASK_GENRTN_REF_NBR)) TASK_SUMMARY ON TASK_SUMMARY.PACKWAVE = EM.EK_WAVE_NBR INNER JOIN WMFADMCLPR.CL_ENDPOINT_QUEUE CEQ ON CEQ.MSG_ID = EM.CL_MESSAGE_ID INNER JOIN WMFADMCLPR.CL_MESSAGE_STATUS CMS ON CMS.STATUS_ID = CEQ.STATUS WHERE EM.EVENT_ID = '9032' AND TD.SHIP_WAVE_NBR IN ('{WAVE}') ORDER BY EM.CREATE_DATE_TIME DESC";
+                    string queryMiniWaves = queryBase.Replace("{WAVE}", waveItem.WAVE);
 
 
+                    List<MINIWAVE> miniWave = new List<MINIWAVE>();
+                    miniWave = await Oracle.ConsultaOracleDatasetAsync<MINIWAVE>(queryMiniWaves, "WMS_LOF2_WF");
 
-                ////var wavePrueba = "202606300095";//"42553432";//"202606260073";//"42489049";//"42488256";//"42485116";
+                    if ((miniWave != null) && (miniWave.Count() > 0))
+                    {
+                        // INICIO FLUJO KISOFT
+                        var startInfo = new ProcessStartInfo
+                        {
+                            FileName = AppPath,
+                            Arguments = "--start-maximized"
+                        };
+
+                        app = FlaUIApplication.Launch(startInfo);
+                        automation = new UIA3Automation();
+                        var ventana = app.GetMainWindow(automation);
+
+                        await Login.FlujoLogin(app, automation);
+                        logger.Log("Login Kisoft OK");
+
+                        Kisoft.AceptarAdvertenciaSeguro(app, automation);  // Funciona rapido, no modificar, me costo ene jaja
+                        logger.Log("Advertencia aceptada");
+
+                        // MODULO OLEADAS (Por coordenadas):
+                        Console.WriteLine("Inicio Modulo Oleadas de pedidos");
+                        //await Kisoft.ClickPorCoordenadasSeguro(app, automation, 236, 264);
+
+                        //await Kisoft.ClickPorCoordenadasSeguro(app, automation, 236, 264); // Para resolucion en noteboook local
+                        await Kisoft.ClickPorCoordenadasSeguro(app, automation, 347, 303); // Para resolución 1080p en el server
+                        logger.Log("Módulo Waves abierto");
+
+                        await Kisoft.CambiarValorTextboxPorValorActualAsync(app, automation, "70", "20");
+                        logger.Log("Cambiar valor al filtro de 70 a 20");
+
+                        //var wavePrueba = "202606300095";//"42553432";//"202606260073";//"42489049";//"42488256";//"42485116";
+
+                        // Boton derecho y seleccionar Ingresar Prioridad
+                        await Kisoft.ClickDerechoEnFilaPorTextoClipboardAsync(app, automation, waveNumber);
+                        logger.Log("Buscar en la grilla la wave");
+
+                        // Si retorna false, se debe cortar el flujo
+                        // Escribir prioridad 90
+                        await Kisoft.IngresarPrioridad90YEnterAsync(app, automation);  // DESCOMENTAR EL ENTER DENTRO, PARA QUE PRESIONE EL OK Y CAMBIE PRIORIDAD
+                        logger.Log("Cambia prioridad a 90 de la wave");
+
+                        // INICIAR OLEADA
+                        await Kisoft.ClickDerechoEnFilaPorTextoClipboardIniciarOleadaAsync(app, automation, waveNumber);
+                        logger.Log("Ininicar Oleada");
+
+                        Kisoft.PulsarBotonSi(app, automation);
+                        logger.Log("Botón Sí presionado");
 
 
-                //// Boton derecho y seleccionar Ingresar Prioridad
-                //await Kisoft.ClickDerechoEnFilaPorTextoClipboardAsync(app, automation, waveNumber);
-                //logger.Log("Buscar en la grilla la wave");
+                        // ACTUALIZAR WAVE
+                        string miniwavesTexto = string.Join(",", miniWave.Select(x => x.WAVE_KISOFT));
+                        ActualizarWave(waveItem.WAVE, miniwavesTexto);
 
-                //// Si retorna false, se debe cortar el flujo
-                //// Escribir prioridad 90
-                //await Kisoft.IngresarPrioridad90YEnterAsync(app, automation);  // DESCOMENTAR EL ENTER DENTRO, PARA QUE PRESIONE EL OK Y CAMBIE PRIORIDAD
-                //logger.Log("Cambia prioridad a 90 de la wave");
+                        logger.Log($"Wave actualizada: {waveItem.WAVE}");
+                        logger.Log($"Mini Waves: {miniwavesTexto}");
+                        logger.FinalizarOk();
 
-                //// INICIAR OLEADA
-                //await Kisoft.ClickDerechoEnFilaPorTextoClipboardIniciarOleadaAsync(app, automation, waveNumber);
-                //logger.Log("Ininicar Oleada");
 
-                //Kisoft.PulsarBotonSi(app, automation);
-                //logger.Log("Botón Sí presionado");
+                    }
+                }
+                    
 
-                //logger.FinalizarOk();
-
-            }
+                }
             catch (Exception ex)
             {
                 logger.FinalizarError(ex);
@@ -472,8 +493,10 @@ namespace WmosAutomatizacion.Classes
                     WAVE = wave
                 };
 
+                string urlFinal = $"{url}/BotMulti/create";
+
                 string jsonBody = JsonConvert.SerializeObject(payload);
-                var webRequest = (HttpWebRequest)WebRequest.Create(url);
+                var webRequest = (HttpWebRequest)WebRequest.Create(urlFinal);
                 webRequest.Accept = "application/json";
                 webRequest.Method = "POST";
                 webRequest.ContentType = "application/json; charset=utf-8";
@@ -511,9 +534,144 @@ namespace WmosAutomatizacion.Classes
             }
         }
 
+        public static List<WAVE_DTO> ObtenerWavesNoProcesadas()
+        {
+            try
+            {
+                var ambiente = Environment.GetEnvironmentVariable("AMBIENTE_AUTOMATIZACION")
+                                ?? ConfigurationManager.AppSettings["Ambiente_Automatizacion"]
+                                ?? "DEV_AUT";
+
+                string Get(string key) =>
+                    Environment.GetEnvironmentVariable(key.Replace(":", "__"))
+                    ?? ConfigurationManager.AppSettings[key];
+
+                var url = ambiente switch
+                {
+                    "LOCAL_AUT" => Get("Urls:LOCAL_AUT"),
+                    "DEV_AUT" => Get("Urls:DEV_AUT"),
+                    "TEST_AUT" => Get("Urls:TEST_AUT"),
+                    "PROD_AUT" => Get("Urls:PROD_AUT"),
+                    _ => Get("Urls:DEV_AUT")
+                };
+
+                string urlFinal = $"{url}/BotMulti/ObtenerWavesNoProcesadas";
+
+                var webRequest = (HttpWebRequest)WebRequest.Create(urlFinal);
+                webRequest.Accept = "application/json";
+                webRequest.Method = "GET";
+                webRequest.Timeout = 150000;
+
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+
+                using (var httpResponse = (HttpWebResponse)webRequest.GetResponse())
+                using (var reader = new StreamReader(httpResponse.GetResponseStream()))
+                {
+                    string result = reader.ReadToEnd();
+
+                    return JsonConvert.DeserializeObject<List<WAVE_DTO>>(result)
+                           ?? new List<WAVE_DTO>();
+                }
+            }
+            catch (WebException ex)
+            {
+                string error = "";
+
+                if (ex.Response != null)
+                {
+                    using (var reader = new StreamReader(ex.Response.GetResponseStream()))
+                    {
+                        error = reader.ReadToEnd();
+                    }
+                }
+
+                throw new Exception($"Error al obtener las waves no procesadas. {error}", ex);
+            }
+        }
+
+        public static void ActualizarWave(string wave, string miniwaves)
+        {
+            try
+            {
+                var ambiente = Environment.GetEnvironmentVariable("AMBIENTE_AUTOMATIZACION")
+                                ?? ConfigurationManager.AppSettings["Ambiente_Automatizacion"]
+                                ?? "DEV_AUT";
+
+                string Get(string key) =>
+                    Environment.GetEnvironmentVariable(key.Replace(":", "__"))
+                    ?? ConfigurationManager.AppSettings[key];
+
+                var url = ambiente switch
+                {
+                    "LOCAL_AUT" => Get("Urls:LOCAL_AUT"),
+                    "DEV_AUT" => Get("Urls:DEV_AUT"),
+                    "TEST_AUT" => Get("Urls:TEST_AUT"),
+                    "PROD_AUT" => Get("Urls:PROD_AUT"),
+                    _ => Get("Urls:DEV_AUT")
+                };
+
+                var payload = new UPDATE_WAVE_DTO
+                {
+                    WAVE = wave,
+                    MINIWAVES = miniwaves
+                };
+
+                string urlFinal = $"{url}/BotMulti/ActualizarWave";
+
+                string jsonBody = JsonConvert.SerializeObject(payload);
+
+                var webRequest = (HttpWebRequest)WebRequest.Create(urlFinal);
+                webRequest.Accept = "application/json";
+                webRequest.Method = "POST";
+                webRequest.ContentType = "application/json; charset=utf-8";
+                webRequest.Timeout = 150000;
+
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+
+                byte[] byteArray = Encoding.UTF8.GetBytes(jsonBody);
+                webRequest.ContentLength = byteArray.Length;
+
+                using (Stream dataStream = webRequest.GetRequestStream())
+                {
+                    dataStream.Write(byteArray, 0, byteArray.Length);
+                }
+
+                using (var httpResponse = (HttpWebResponse)webRequest.GetResponse())
+                using (var reader = new StreamReader(httpResponse.GetResponseStream()))
+                {
+                    string result = reader.ReadToEnd();
+                }
+            }
+            catch (WebException ex)
+            {
+                string error = string.Empty;
+
+                if (ex.Response != null)
+                {
+                    using (var reader = new StreamReader(ex.Response.GetResponseStream()))
+                    {
+                        error = reader.ReadToEnd();
+                    }
+                }
+
+                throw new Exception($"Error al actualizar la wave. {error}", ex);
+            }
+        }
+
         public class WAVE_DTO
         {
             public string WAVE { get; set; }
+        }
+
+        public class MINIWAVE
+        {
+            public string WAVE_KISOFT { get; set; }
+        }
+
+        public class UPDATE_WAVE_DTO
+        {
+            public string WAVE { get; set; }
+            public string MINIWAVES { get; set; }
         }
     }
 }
