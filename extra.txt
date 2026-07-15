@@ -1,0 +1,2 @@
+--Comando para el build de la aplicacion
+msbuild C:\Proyectos_Consola\Kisoft\ConsoleKisoft\ConsoleKisoft\ConsoleKisoft.csproj /p:Configuration=Release
