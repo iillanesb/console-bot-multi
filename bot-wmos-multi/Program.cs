@@ -111,7 +111,6 @@ namespace WmosAutomatizacion.Classes
                 logger.Log("Click Parameters");
 
 
-                // Preguntar si sigue misma lógica que en single
                 if (WMOS.DebeUsarWaveNew())
                 {
                     await ExtJsHelpers.SelectOptionByTrimmedTextAsync(
@@ -130,14 +129,10 @@ namespace WmosAutomatizacion.Classes
                     );
                     logger.Log("Selecciona Wave Customer Order");
                 }
-                // Fin preguntar si es misma lógica que single
 
                 await ExtJsHelpers.ClickInputByValueAsync(page, "Submit", allowSuffix: true);
                 logger.Log("Click Submit y espera 6 segundos");
 
-                // AQUI EL NUEVO FLUJO
-                // SE DEBE PREGUNTAR CON LA QUERY
-                // POR LAS MINI OLAS DEL MULTI PARA REVISAR EN KISOFT
 
                 await Task.Delay(6000);
 
@@ -160,16 +155,10 @@ namespace WmosAutomatizacion.Classes
                 logger.Log("Obtención LPNS"); 
                 logger.Log($"LPNS: {lpns}");
 
-                //waveNumber = "202601290090";
-                //waveNumber = "202601300036";
-                //var queryUsar = @$"SELECT TASK_HDR.TASK_ID, LOCN_HDR.AREA AS AREA_ACTUAL, TASK_HDR.TASK_DESC, SHIP_WAVE_PARM.SHIP_WAVE_NBR AS WAVE, SHIP_WAVE_PARM.WAVE_DESC, WAVE_PARM.WAVE_DESC AS DESCRIPC_WAVE, TASK_DTL.CNTR_NBR AS ILPN, TASK_HDR.END_CURR_WORK_GRP, TASK_HDR.END_CURR_WORK_AREA, TASK_HDR.CREATE_DATE_TIME, TO_CHAR(TASK_HDR.create_date_time, 'HH24:MI:SS') AS HORA_CREAC, TASK_HDR.MOD_DATE_TIME, TO_CHAR(TASK_HDR.MOD_DATE_TIME, 'HH24:MI:SS') AS HORA_MODIF, TASK_DTL.USER_ID, concat(ucl_user.user_first_name, ucl_user.user_last_name) as Nombre, LPN.ITEM_NAME, lh1.DSP_LOCN AS PULL_LOCN_DSP, lh2.DSP_LOCN AS DEST_LOCN_DSP FROM TASK_HDR INNER JOIN TASK_DTL ON TASK_DTL.TASK_ID = TASK_HDR.TASK_ID INNER JOIN LPN ON LPN.TC_LPN_ID = TASK_DTL.CNTR_NBR INNER JOIN SHIP_WAVE_PARM ON SHIP_WAVE_PARM.SHIP_WAVE_NBR = TASK_HDR.TASK_GENRTN_REF_NBR LEFT JOIN LOCN_HDR ON locn_hdr.locn_id = LPN.CURR_SUB_LOCN_ID LEFT JOIN LOCN_HDR lh1 ON TASK_DTL.PULL_LOCN_ID = lh1.LOCN_ID LEFT JOIN LOCN_HDR lh2 ON TASK_DTL.DEST_LOCN_ID = lh2.LOCN_ID LEFT JOIN WAVE_PARM ON SHIP_WAVE_PARM.SHIP_WAVE_NBR = WAVE_PARM.WAVE_NBR left join ucl_user on ucl_user.user_name = task_dtl.user_id WHERE SUBSTR(TASK_HDR.TASK_GENRTN_REF_NBR,1,4)in ('2025', '2026') AND LOCN_HDR.AREA IN('RCK','DZO','IND','DZG','ISL','SOR') AND task_dtl.stat_code NOT IN('90', '99') AND SHIP_WAVE_PARM.SHIP_WAVE_NBR = '{waveNumber}' ORDER BY TASK_HDR.TASK_GENRTN_REF_NBR DESC";
-
-
 
                 await Task.Delay(3000);
 
                 logger.Log("Consulta Oracle inicio");
-                // Se agrega type 10 02-07-2026
                 var queryUsar = $@"SELECT case when cntr_nbr is null then 0 else 1 end as NBR_OF_DETAIL FROM  task_hdr hdr left JOIN task_dtl dtl ON hdr.task_id = dtl.task_id left join sys_code on sys_code.code_id = hdr.stat_code and sys_code.code_type in ('552') WHERE  1 = 1 AND hdr.task_cmpl_ref_nbr IN ('{waveNumber}') AND hdr.invn_need_type IN ('1','2', '10') AND sys_code.code_desc in ('Released')";
 
                 List<WAVEWMOS> waveWmos = new List<WAVEWMOS>();
@@ -194,7 +183,9 @@ namespace WmosAutomatizacion.Classes
                     STATUS = status,
                     ALLOCATED = unitsAllocated.ToString(),
                     LPNS = lpns.ToString(),
-                    CAJAS = waveWmos.Count > 0 ? waveWmos.Sum(x => x.NBR_OF_DETAIL) : 0
+                    CAJAS = (waveWmos != null && waveWmos.Count > 0)
+                        ? waveWmos.Sum(x => x.NBR_OF_DETAIL)
+                        : 0
                 };
                 logger.Log("Crea objeto a enviar a teams");
 
@@ -215,8 +206,8 @@ namespace WmosAutomatizacion.Classes
                 // PRUEBAS, COMENTAR LUEGO
                 //
                 //
-                        var waveTest = "123";
-                        GuardarWave(waveTest);
+                        //var waveTest = "123";
+                        //GuardarWave(waveTest);
                 //
                 //
                 //
@@ -227,138 +218,95 @@ namespace WmosAutomatizacion.Classes
                 // Flujo MULTI llega hasta aqui...
 
 
-                //// TASKS
-                //await Task.Delay(3000);
-                //await ExtJsHelpers.ClickByCssAsync(page, "img.x-tool-img.x-tool-close");
-                //logger.Log("Cierra ventana");
+                // TASKS
+                await Task.Delay(3000);
+                await ExtJsHelpers.ClickByCssAsync(page, "img.x-tool-img.x-tool-close");
+                logger.Log("Cierra ventana");
 
-                //await Task.Delay(3000);
-                //await ExtJsHelpers.DblClickLabelByTextAsync(page, "Tasks");
-                //logger.Log("Click en Tasks");
+                await Task.Delay(3000);
+                await ExtJsHelpers.DblClickLabelByTextAsync(page, "Tasks");
+                logger.Log("Click en Tasks");
 
-                //await Task.Delay(4000);
-                //// requiere esperar un momento o carga mal
-                //await ExtJsHelpers.ClickByCssAsync(page, "img.x-tool-img.x-tool-maximize");
-                //logger.Log("Maximiza ventana");
+                await Task.Delay(4000);
+                // requiere esperar un momento o carga mal
+                await ExtJsHelpers.ClickByCssAsync(page, "img.x-tool-img.x-tool-maximize");
+                logger.Log("Maximiza ventana");
 
-                //await Task.Delay(3000);
-                //await ExtJsHelpers.ClickByCssAsync(page, "img.x-tool-img.x-tool-restore");
-                //logger.Log("Restaura ventana");
+                await Task.Delay(3000);
+                await ExtJsHelpers.ClickByCssAsync(page, "img.x-tool-img.x-tool-restore");
+                logger.Log("Restaura ventana");
 
-                //await Task.Delay(3000);
-                //await ExtJsHelpers.ClickByCssAsync(page, "img.x-tool-img.x-tool-maximize");
-                //logger.Log("Maximiza ventana");
-                //await Task.Delay(3000);
-
-
-                //await ExtJsHelpers.SelectOptionByCaptionAsync(
-                //    page,
-                //    captionText: "Header Status",
-                //    optionVisibleText: "Locked/Disabled",
-                //    allowContainsFallback: false,
-                //    timeoutMs: 10000
-                //);
-                //logger.Log("Header Status lo deja en Locked / Disabled");
-
-                //await Task.Delay(3000);
-                //await ExtJsHelpers.ClickInputByValueAsync(page, "Apply", allowSuffix: false);
-                //logger.Log("Click botón Apply");
-
-       
-                //await Task.Delay(3000);
-                //await ExtJsHelpers.SelectAllRowsOfficiallyAndVisuallyAsync(
-                //    page,
-                //    tableIdPrefix: "dataForm:lview:dataTable",
-                //    headerText: "Task Generation Reference Number",
-                //    targetValue: waveNumber,  // luego reemplaza por waveNumber
-                //    exact: true,
-                //    timeoutMs: 12000
-                //);
-                //logger.Log("Selecciona todas las rows asociadas al WaveNumber - Task Generation Reference Number");
+                await Task.Delay(3000);
+                await ExtJsHelpers.ClickByCssAsync(page, "img.x-tool-img.x-tool-maximize");
+                logger.Log("Maximiza ventana");
+                await Task.Delay(3000);
 
 
-                //await Task.Delay(3000);
-                //await ExtJsHelpers.ClickByCssAsync(page, "img.x-tool-img.x-tool-restore");
-                //logger.Log("Restaura ventana");
+                await ExtJsHelpers.SelectOptionByCaptionAsync(
+                    page,
+                    captionText: "Header Status",
+                    optionVisibleText: "Locked/Disabled",
+                    allowContainsFallback: false,
+                    timeoutMs: 10000
+                );
+                logger.Log("Header Status lo deja en Locked / Disabled");
 
-         
+                await Task.Delay(3000);
+                await ExtJsHelpers.ClickInputByValueAsync(page, "Apply", allowSuffix: false);
+                logger.Log("Click botón Apply");
 
-                //await Task.Delay(3000);
-                //var dialogMsg = await ExtJsHelpers.ClickInputByValueUntilDialogAndAcceptAsync(
-                //    page,
-                //    visibleValue: "Release Task",
-                //    totalTimeoutMs: 30000,     // ajusta 
-                //    minIntervalMs: 250,
-                //    maxIntervalMs: 1000,
-                //    ensureEnabledBeforeFirstClick: true,
-                //    clickMode: ExtJsHelpers.ClickMode.Double //  fuerza doble click real
-                //);
-                //logger.Log("Click Release Task");
+
+                // Obtener miniOla
+                string qBaseMiniOla = @"SELECT EM.EK_WAVE_NBR WAVE_KISOFT, EM.EVENT_MESSAGE_ID WMOS_MSG, EM.CL_MESSAGE_ID KNAPP_MSG, EM.EVENT_ID, CMS.STATUS_NAME STATUS, EM.create_date_time EV_DTTM, TD.SHIP_WAVE_NBR WMOS_WAVE, SWP.WAVE_DESC, (WTASK.SUM_COMPLETED / WTASK.SUM_TASKS) * 100 COMPLETED, WTASK.SUM_TASKS INT1, WTASK.SUM_COMPLETED INT1_CONSUMED, EM.EK_WAVE_NBR, TASK_SUMMARY.SUM_TOTAL TAREAS_TOTAL, TASK_SUMMARY.SUM_TOTAL_MZ ""TAREAS_MZN (TOTAL)"", TASK_SUMMARY.SUM_RELEASED_MZ ""TAREAS_MZN (RELEASED)"", TASK_SUMMARY.SUM_LOCK_MZ ""TAREAS_MZN (LOCKED)"", TASK_SUMMARY.SUM_TOTAL_GT ""TAREAS_GTP (TOTAL)"", TASK_SUMMARY.SUM_RELEASED_GT ""TAREAS_GTP (RELEASED)"", TASK_SUMMARY.SUM_LOCK_GT ""TAREAS_GTP (LOCKED)"" FROM event_message EM INNER JOIN (SELECT DISTINCT SWP.SHIP_WAVE_NBR, TD.TASK_GENRTN_REF_NBR FROM TASK_DTL TD INNER JOIN LPN L ON L.TC_LPN_ID = TD.CARTON_NBR INNER JOIN SHIP_WAVE_PARM SWP ON SWP.SHIP_WAVE_NBR = L.WAVE_NBR WHERE TD.TASK_GENRTN_REF_CODE = '44') TD ON TD.TASK_GENRTN_REF_NBR = EM.EK_WAVE_NBR INNER JOIN SHIP_WAVE_PARM SWP ON SWP.SHIP_WAVE_NBR = TD.SHIP_WAVE_NBR LEFT JOIN (SELECT TD_TODAS.SHIP_WAVE_NBR, TD_TODAS.SUM_TASKS, TD_90.SUM_COMPLETED, TD_0.SUM_RELEASED, TD_40.SUM_INPROGRESS FROM (SELECT WAVES.SHIP_WAVE_NBR, COUNT(TD.TASK_ID) SUM_TASKS FROM TASK_DTL TD INNER JOIN (SELECT * FROM SHIP_WAVE_PARM SWP WHERE SWP.WAVE_DESC LIKE 'Chase Wave' OR SWP.WAVE_DESC LIKE 'Customer Order Multi%') WAVES ON TD.TASK_GENRTN_REF_NBR = WAVES.SHIP_WAVE_NBR WHERE TD.INVN_NEED_TYPE = '1' AND TD.STAT_CODE NOT IN ('99') GROUP BY WAVES.SHIP_WAVE_NBR) TD_TODAS LEFT JOIN (SELECT WAVES.SHIP_WAVE_NBR, COUNT(TD.TASK_ID) SUM_RELEASED FROM TASK_DTL TD INNER JOIN (SELECT * FROM SHIP_WAVE_PARM SWP WHERE SWP.WAVE_DESC LIKE 'Chase Wave' OR SWP.WAVE_DESC LIKE 'Customer Order Multi%') WAVES ON TD.TASK_GENRTN_REF_NBR = WAVES.SHIP_WAVE_NBR WHERE TD.INVN_NEED_TYPE = '1' AND TD.STAT_CODE IN ('0') GROUP BY WAVES.SHIP_WAVE_NBR) TD_0 ON TD_TODAS.SHIP_WAVE_NBR = TD_0.SHIP_WAVE_NBR LEFT JOIN (SELECT WAVES.SHIP_WAVE_NBR, COUNT(TD.TASK_ID) SUM_COMPLETED FROM TASK_DTL TD INNER JOIN (SELECT * FROM SHIP_WAVE_PARM SWP WHERE SWP.WAVE_DESC LIKE 'Chase Wave' OR SWP.WAVE_DESC LIKE 'Customer Order Multi%') WAVES ON TD.TASK_GENRTN_REF_NBR = WAVES.SHIP_WAVE_NBR WHERE TD.INVN_NEED_TYPE = '1' AND TD.STAT_CODE IN ('90') GROUP BY WAVES.SHIP_WAVE_NBR) TD_90 ON TD_TODAS.SHIP_WAVE_NBR = TD_90.SHIP_WAVE_NBR LEFT JOIN (SELECT WAVES.SHIP_WAVE_NBR, COUNT(TD.TASK_ID) SUM_INPROGRESS FROM TASK_DTL TD INNER JOIN (SELECT * FROM SHIP_WAVE_PARM SWP WHERE SWP.WAVE_DESC LIKE 'Chase Wave' OR SWP.WAVE_DESC LIKE 'Customer Order Multi%') WAVES ON TD.TASK_GENRTN_REF_NBR = WAVES.SHIP_WAVE_NBR WHERE TD.INVN_NEED_TYPE = '1' AND TD.STAT_CODE IN ('40') GROUP BY WAVES.SHIP_WAVE_NBR) TD_40 ON TD_TODAS.SHIP_WAVE_NBR = TD_40.SHIP_WAVE_NBR) WTASK ON SWP.SHIP_WAVE_NBR = WTASK.SHIP_WAVE_NBR LEFT JOIN (SELECT TOTAL.TASK_GENRTN_REF_NBR PackWave, TOTAL.SUM_TOTAL, TOTALMZ.SUM_TOTAL_MZ, RELEASEDMZ.SUM_RELEASED_MZ, LOCKMZ.SUM_LOCK_MZ, TOTALGT.SUM_TOTAL_GT, RELEASEDGT.SUM_RELEASED_GT, LOCKGT.SUM_LOCK_GT FROM ((SELECT TT.TASK_GENRTN_REF_NBR, COUNT(TT.TASK_ID) SUM_TOTAL FROM TASK_DTL TT INNER JOIN LOCN_HDR LH ON LH.LOCN_ID = TT.PULL_LOCN_ID AND TT.TASK_GENRTN_REF_CODE = '44' GROUP BY TT.TASK_GENRTN_REF_NBR) TOTAL LEFT JOIN (SELECT TT.TASK_GENRTN_REF_NBR, COUNT(TT.TASK_ID) SUM_TOTAL_MZ FROM TASK_DTL TT INNER JOIN LOCN_HDR LH ON LH.LOCN_ID = TT.PULL_LOCN_ID AND TT.TASK_GENRTN_REF_CODE = '44' AND LH.AREA = 'MZ' GROUP BY TT.TASK_GENRTN_REF_NBR) TOTALMZ ON TOTAL.TASK_GENRTN_REF_NBR = TOTALMZ.TASK_GENRTN_REF_NBR LEFT JOIN (SELECT TT.TASK_GENRTN_REF_NBR, COUNT(TT.TASK_ID) SUM_RELEASED_MZ FROM TASK_DTL TT INNER JOIN LOCN_HDR LH ON LH.LOCN_ID = TT.PULL_LOCN_ID INNER JOIN TASK_HDR TH ON TH.TASK_ID = TT.TASK_ID WHERE TH.STAT_CODE IN ('10') AND TT.TASK_GENRTN_REF_CODE = '44' AND LH.AREA = 'MZ' GROUP BY TT.TASK_GENRTN_REF_NBR) RELEASEDMZ ON TOTAL.TASK_GENRTN_REF_NBR = RELEASEDMZ.TASK_GENRTN_REF_NBR LEFT JOIN (SELECT TT.TASK_GENRTN_REF_NBR, COUNT(TT.TASK_ID) SUM_LOCK_MZ FROM TASK_DTL TT INNER JOIN LOCN_HDR LH ON LH.LOCN_ID = TT.PULL_LOCN_ID INNER JOIN TASK_HDR TH ON TH.TASK_ID = TT.TASK_ID WHERE TH.STAT_CODE IN ('5') AND TT.TASK_GENRTN_REF_CODE = '44' AND LH.AREA = 'MZ' GROUP BY TT.TASK_GENRTN_REF_NBR) LOCKMZ ON TOTAL.TASK_GENRTN_REF_NBR = LOCKMZ.TASK_GENRTN_REF_NBR LEFT JOIN (SELECT TT.TASK_GENRTN_REF_NBR, COUNT(TT.TASK_ID) SUM_TOTAL_GT FROM TASK_DTL TT INNER JOIN LOCN_HDR LH ON LH.LOCN_ID = TT.PULL_LOCN_ID AND TT.TASK_GENRTN_REF_CODE = '44' AND LH.AREA = 'GT' GROUP BY TT.TASK_GENRTN_REF_NBR) TOTALGT ON TOTAL.TASK_GENRTN_REF_NBR = TOTALGT.TASK_GENRTN_REF_NBR LEFT JOIN (SELECT TT.TASK_GENRTN_REF_NBR, COUNT(TT.TASK_ID) SUM_RELEASED_GT FROM TASK_DTL TT INNER JOIN LOCN_HDR LH ON LH.LOCN_ID = TT.PULL_LOCN_ID INNER JOIN TASK_HDR TH ON TH.TASK_ID = TT.TASK_ID WHERE TH.STAT_CODE IN ('10') AND TT.TASK_GENRTN_REF_CODE = '44' AND LH.AREA = 'GT' GROUP BY TT.TASK_GENRTN_REF_NBR) RELEASEDGT ON TOTAL.TASK_GENRTN_REF_NBR = RELEASEDGT.TASK_GENRTN_REF_NBR LEFT JOIN (SELECT TT.TASK_GENRTN_REF_NBR, COUNT(TT.TASK_ID) SUM_LOCK_GT FROM TASK_DTL TT INNER JOIN LOCN_HDR LH ON LH.LOCN_ID = TT.PULL_LOCN_ID INNER JOIN TASK_HDR TH ON TH.TASK_ID = TT.TASK_ID WHERE TH.STAT_CODE = '5' AND TT.TASK_GENRTN_REF_CODE = '44' AND LH.AREA = 'GT' GROUP BY TT.TASK_GENRTN_REF_NBR) LOCKGT ON TOTAL.TASK_GENRTN_REF_NBR = LOCKGT.TASK_GENRTN_REF_NBR)) TASK_SUMMARY ON TASK_SUMMARY.PACKWAVE = EM.EK_WAVE_NBR INNER JOIN WMFADMCLPR.CL_ENDPOINT_QUEUE CEQ ON CEQ.MSG_ID = EM.CL_MESSAGE_ID INNER JOIN WMFADMCLPR.CL_MESSAGE_STATUS CMS ON CMS.STATUS_ID = CEQ.STATUS WHERE EM.EVENT_ID = '9032' AND TD.SHIP_WAVE_NBR IN ('{WAVE}') ORDER BY EM.CREATE_DATE_TIME DESC";
+                string qMiniWave = qBaseMiniOla.Replace("{WAVE}", waveNumber);
+                List<MINIWAVE> listMiniWave = new List<MINIWAVE>();
+                listMiniWave = await Oracle.ConsultaOracleDatasetAsync<MINIWAVE>(qMiniWave, "WMS_LOF2_WF");
+                // Fin miniola
+
+                foreach (var item in listMiniWave)
+                {
+                    await Task.Delay(3000);
+                    await ExtJsHelpers.SelectAllRowsOfficiallyAndVisuallyAsync(
+                        page,
+                        tableIdPrefix: "dataForm:lview:dataTable",
+                        headerText: "Task Generation Reference Number",
+                        targetValue: item.WAVE_KISOFT,  // AQUI DEBEN IR LAS MINI OLAS
+                        exact: true,
+                        timeoutMs: 12000
+                    );
+                    logger.Log($"Selecciona todas las rows asociadas a miniolas {item.WAVE_KISOFT} - Task Generation Reference Number");
+                }
+
+
+                await Task.Delay(3000);
+                await ExtJsHelpers.ClickByCssAsync(page, "img.x-tool-img.x-tool-restore");
+                logger.Log("Restaura ventana");
 
 
 
-
-                //await Task.Delay(3000);
-                //// Cerrar la respuesta del alert
-                //// Cerrar Tasks
-                //await ExtJsHelpers.ClickByCssAsync(page, "img.x-tool-img.x-tool-close");
-                //logger.Log("Cierra ventana");
-
-
-                ////No es necesario este segundo, con uno se cierra bien!
-                ////await ExtJsHelpers.ClickByCssAsync(page, "img.x-tool-img.x-tool-close");
-
-                //await Task.Delay(3000);
-                //// Ultima parte del flujo WMS
-                //// Click en waves y luego en single boton derecho
-                //await ExtJsHelpers.DblClickLabelByTextAsync(page, "Waves");
-                //logger.Log("Click en Waves");
-
-                //await Task.Delay(3000);
-                //// Usado para que desaparezca el menu "Remove"
-                //await ExtJsHelpers.ClickByCssAsync(page, "img.x-tool-img.x-tool-maximize");
-                //logger.Log("Maximiza ventana");
-
-                //await Task.Delay(3000);
-                //await ExtJsHelpers.ClickByCssAsync(page, "img.x-tool-img.x-tool-restore");
-                //logger.Log("Restaura ventana");
-
-                //await Task.Delay(3000);
-                ////var waveNumberTest = "202602130059";
-                //await ExtJsHelpers.ClickRowCheckboxByHeaderValueAsync(
-                //    page,
-                //    tableIdPrefix: "dataForm:listView:dataTable",
-                //    headerText: "Wave Number",
-                //    targetValue: waveNumber,
-                //    exact: true,
-                //    timeoutMs: 12000
-                //);
-                //logger.Log("Click Checkbox por waveNumber");
-
-                //await Task.Delay(3000);
-                //await ExtJsHelpers.RightClickRowByHeaderValueAsync(
-                //    page,
-                //    "dataForm:listView:dataTable",
-                //    "Wave Number",
-                //    waveNumber,
-                //    exact: true
-                //);
-                //logger.Log("Botón derecho en waveNumber");
-
-                //await Task.Delay(3000);
-                //var dialogMsgRelease = await ExtJsHelpers.ClickContextMenuItemUntilDialogAndAcceptAsync(
-                //    page,
-                //    menuText: "Release MHE Messages",
-                //    totalTimeoutMs: 30000,
-                //    minIntervalMs: 250,
-                //    maxIntervalMs: 1200,
-                //    clickMode: ExtJsHelpers.ClickMode.Both,  // Single + Double en cada iteración
-                //    allowContainsFallback: false
-                ////reopenMenuAsync: reopenMenu              // o null si el menú no se cierra
-                //);
-                //logger.Log("Click Release MHE Messages");
+                await Task.Delay(3000);
+                var dialogMsg = await ExtJsHelpers.ClickInputByValueUntilDialogAndAcceptAsync(
+                    page,
+                    visibleValue: "Release Task",
+                    totalTimeoutMs: 30000,     // ajusta 
+                    minIntervalMs: 250,
+                    maxIntervalMs: 1000,
+                    ensureEnabledBeforeFirstClick: true,
+                    clickMode: ExtJsHelpers.ClickMode.Double //  fuerza doble click real
+                );
+                logger.Log("Click Release Task");
 
 
+
+
+                await Task.Delay(3000);
+                // Cerrar la respuesta del alert
+                // Cerrar Tasks
+                await ExtJsHelpers.ClickByCssAsync(page, "img.x-tool-img.x-tool-close");
+                logger.Log("Cierra ventana");
+
+
+                // EL FLUJO RELEASE MHE MESSAGE no es necesario en multi.
 
 
                 // abrir kisoft
@@ -420,21 +368,26 @@ namespace WmosAutomatizacion.Classes
 
                         //var wavePrueba = "202606300095";//"42553432";//"202606260073";//"42489049";//"42488256";//"42485116";
 
-                        // Boton derecho y seleccionar Ingresar Prioridad
-                        await Kisoft.ClickDerechoEnFilaPorTextoClipboardAsync(app, automation, waveNumber);
-                        logger.Log("Buscar en la grilla la wave");
+                        foreach (var item in miniWave)
+                        {
 
-                        // Si retorna false, se debe cortar el flujo
-                        // Escribir prioridad 90
-                        await Kisoft.IngresarPrioridad90YEnterAsync(app, automation);  // DESCOMENTAR EL ENTER DENTRO, PARA QUE PRESIONE EL OK Y CAMBIE PRIORIDAD
-                        logger.Log("Cambia prioridad a 90 de la wave");
+                            // Boton derecho y seleccionar Ingresar Prioridad
+                            await Kisoft.ClickDerechoEnFilaPorTextoClipboardAsync(app, automation, item.WAVE_KISOFT);
+                            logger.Log("Buscar en la grilla la wave");
 
-                        // INICIAR OLEADA
-                        await Kisoft.ClickDerechoEnFilaPorTextoClipboardIniciarOleadaAsync(app, automation, waveNumber);
-                        logger.Log("Ininicar Oleada");
+                            // Si retorna false, se debe cortar el flujo
+                            // Escribir prioridad 90
+                            await Kisoft.IngresarPrioridad90YEnterAsync(app, automation);  // DESCOMENTAR EL ENTER DENTRO, PARA QUE PRESIONE EL OK Y CAMBIE PRIORIDAD
+                            logger.Log("Cambia prioridad a 90 de la wave");
 
-                        Kisoft.PulsarBotonSi(app, automation);
-                        logger.Log("Botón Sí presionado");
+                            // INICIAR OLEADA
+                            await Kisoft.ClickDerechoEnFilaPorTextoClipboardIniciarOleadaAsync(app, automation, item.WAVE_KISOFT);
+                            logger.Log("Ininicar Oleada");
+
+                            Kisoft.PulsarBotonSi(app, automation);
+                            logger.Log("Botón Sí presionado");
+                        }
+
 
 
                         // ACTUALIZAR WAVE
